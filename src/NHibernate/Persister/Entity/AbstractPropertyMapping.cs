@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using NHibernate.Engine;
 using NHibernate.SqlCommand;
 using NHibernate.Type;
@@ -92,14 +93,39 @@ namespace NHibernate.Persister.Entity
 
 		#endregion
 
-		protected void AddPropertyPath(string path, IType type, string[] columns, string[] formulaTemplates)
-		{
-			typesByPropertyPath[path] = type;
-			columnsByPropertyPath[path] = columns;
+        protected void AddPropertyPath(string path, IType type, string[] columns, string[] formulaTemplates)
+        {
+            typesByPropertyPath[path] = type;
 
-			if (formulaTemplates != null)
-				formulaTemplatesByPropertyPath[path] = formulaTemplates;
-		}
+            if (columnsByPropertyPath.ContainsKey(path))
+            {
+                if (columns.Any(c => c != null))
+                {
+                    var existingColumns = columnsByPropertyPath[path];
+                    columnsByPropertyPath[path] = existingColumns.Union(columns.Where(c => c != null)).ToArray();
+                }
+            }
+            else
+            {
+                columnsByPropertyPath[path] = columns.Where(c => c != null).ToArray();
+            }
+
+            if (formulaTemplates != null)
+            {
+                if (formulaTemplatesByPropertyPath.ContainsKey(path))
+                {
+                    if (formulaTemplates.Any(f => f != null))
+                    {
+                        var existingTemplates = formulaTemplatesByPropertyPath[path];
+                        formulaTemplatesByPropertyPath[path] = existingTemplates.Union(formulaTemplates.Where(t => t != null)).ToArray();
+                    }
+                }
+                else
+                {
+                    formulaTemplatesByPropertyPath[path] = formulaTemplates.Where(t => t != null).ToArray();
+                }
+            }
+        }
 
 		protected internal void InitPropertyPaths( string path, IType type, string[] columns, string[] formulaTemplates, IMapping factory )
 		{
